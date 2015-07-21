@@ -88,7 +88,7 @@ var App = ReactMeteor.createClass({
 
   getDefaultProps: function() {
     return {
-      pageLimit: 1000,
+      pageLimit: 10,
       wordLimit: 5000,
       year: 2015,
       month: 6,

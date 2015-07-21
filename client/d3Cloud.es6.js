@@ -19,6 +19,11 @@ var color2 = d3.scale.linear()
          '#c0223b', '#b81b34', '#b0122c', '#a70b24', '#9e051b', '#94010f',
          '#8b0000'].reverse());
 
+var force = d3.layout.force()
+              .charge((d) => { return -Math.pow(d.size, 2.0 / 8); })
+              .gravity(-0.01)
+              .friction(0.9)
+              .size([width, height]);
 
 function linkArc(d) {
   var dx = d.target.x - d.source.x;
@@ -190,7 +195,7 @@ function post_process_background(d, i, history, that) {
 d3Cloud.create = function(el, state, callback) {
   //TODO: props to include as arg
   d3.select(el).append("svg")
-    .attr("id", "word-cloud")
+    .attr("id", "force")
     .attr("width", width)
     .attr("height", height)
     .append("g")
@@ -200,24 +205,37 @@ d3Cloud.create = function(el, state, callback) {
 };
 
 d3Cloud.update = function(el, state, callback) {
-  d3.layout.cloud().size([width, height])
-    .words(state.data)
-    .padding(4)
-    // .random((d) => {return 1; } )
-    .rotate(0)
-    //.font("Verdana")
-    .font("Impact")
-    .text((d) => {
-      return d.key;
-    })
-    .fontSize((d) => {
-      return d.size;
-    })
-    .on("end", (d) => {
-      this.draw(d, state, callback);
-    })
+  if (state.data.length === 0) return;
+
+  force
+    .nodes(state.data)
     .start();
 
+  var nodes = d3.select("#force").selectAll(".node")
+    .data(state.data, (d) => {
+      return d.key;
+    });
+
+  console.log("nodes", state.data, nodes);
+
+  nodes.enter()
+    .append("circle")
+    .attr("class", "node")
+    .attr("r", (d) => { return d.size; })
+    .style("fill", function(d) { return color(d.size); })
+    .call(force.drag);
+
+
+  nodes.append("title")
+    .text(function(d) { return d.key; });
+
+  force.on("tick", function() {
+    nodes.attr("cx", (d) => { return d.x; })
+        .attr("cy", (d) => { return d.y; });
+  });
+
+  nodes.exit()
+    .remove();
 };
 
 d3Cloud.draw = function(words, state, callback) {
